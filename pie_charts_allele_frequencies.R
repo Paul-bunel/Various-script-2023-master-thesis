@@ -38,6 +38,7 @@ tag.map.title <- tags$style(HTML("
     padding-left: 10px; 
     padding-right: 10px; 
     background: rgba(255,255,255,0.75);
+    font-weight: bold;
     font-size: 15px;
   }
 "))
