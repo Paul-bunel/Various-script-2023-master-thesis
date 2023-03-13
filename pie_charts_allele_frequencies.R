@@ -4,7 +4,7 @@ library(htmlwidgets)
 library(leaflet.minicharts)
 library(htmltools)
 
-coordinates <- read.csv2("Africaneo_dataset_geographical_coordinates.csv")
+coordinates <- read.csv("Africaneo_dataset_geographical_coordinates_c.csv")
 SNPs <- read.table("SNPs_of_interest_analysis_clst.frq.strat", header = T,
                    sep = "\t", colClasses = c(rep("character", 4), rep("numeric", 3)))
 
@@ -49,7 +49,10 @@ title <- tags$div(
     "CHROMOSOME : ", CHR_of_interest, "<br>",
     "POSITION : ", POS_of_interest
   ))
-)  
+)
+
+# test_lat <- c(29.184692994700786, 30.184692994700786)
+# test_lng <- c(2.5422308597469474, 2.5422308597469474)
 
 map <- leaflet() %>%
   addTiles(
@@ -62,6 +65,12 @@ map <- leaflet() %>%
     width = sqrt(SNP_coordinates$N) / sqrt(max(SNP_coordinates$N)) * 40,
     legend = FALSE
   ) %>%
+  # addMinicharts(
+  #   lat = test_lat, lng = test_lng,
+  #   type = "pie",
+  #   chartdata = 1,
+  #   width = 20
+  # ) %>%
   addCircleMarkers(
     lat = SNP_coordinates$Latitude, lng = SNP_coordinates$Longitude,
     label = SNP_coordinates$CLST,
