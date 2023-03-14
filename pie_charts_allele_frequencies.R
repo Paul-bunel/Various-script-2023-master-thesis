@@ -22,7 +22,7 @@ SNP_coordinates <- merge(
 
 dbSNP <- read.csv("dbSNP_retrieved.csv", header = F,
                   col.names = c("GENE", "RSID", "CHR", "POS", "ALLELES"),
-                  colClasses = c(rep("character", 5)))
+                  colClasses = rep("character", 5))
 CHR_of_interest <- strsplit(SNP_of_interest, "_")[[1]][1]
 POS_of_interest <- strsplit(SNP_of_interest, "_")[[1]][2]
 GENE_of_interest <- dbSNP$GENE[dbSNP$CHR == CHR_of_interest & dbSNP$POS == POS_of_interest]
@@ -51,12 +51,24 @@ title <- tags$div(
   ))
 )
 
-# test_lat <- c(29.184692994700786, 30.184692994700786)
-# test_lng <- c(2.5422308597469474, 2.5422308597469474)
+lifestyles <- c("farmer", "pastoralist", "foragers")
 
 map <- leaflet() %>%
   addTiles(
     "https://tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey=688b32b79cbf44edb274836064f80b41"
+  ) %>%
+  addCircleMarkers(
+    lat = SNP_coordinates$Latitude, lng = SNP_coordinates$Longitude,
+    opacity = ifelse(SNP_coordinates$main_lifestyle %in% lifestyles, 1, 0),
+    weight = 3,
+    color = ifelse(
+      SNP_coordinates$main_lifestyle == "farmer", 'green',
+      ifelse(
+        SNP_coordinates$main_lifestyle == "pastoralist", 'red', 'blue'
+      )
+    ),
+    fillOpacity = 0,
+    radius = sqrt(SNP_coordinates$N) / sqrt(max(SNP_coordinates$N)) * 20,
   ) %>%
   addMinicharts(
     lat = SNP_coordinates$Latitude, lng = SNP_coordinates$Longitude,
@@ -65,12 +77,6 @@ map <- leaflet() %>%
     width = sqrt(SNP_coordinates$N) / sqrt(max(SNP_coordinates$N)) * 40,
     legend = FALSE
   ) %>%
-  # addMinicharts(
-  #   lat = test_lat, lng = test_lng,
-  #   type = "pie",
-  #   chartdata = 1,
-  #   width = 20
-  # ) %>%
   addCircleMarkers(
     lat = SNP_coordinates$Latitude, lng = SNP_coordinates$Longitude,
     label = SNP_coordinates$CLST,
