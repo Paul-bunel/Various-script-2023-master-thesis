@@ -4,7 +4,7 @@ library(htmlwidgets)
 library(leaflet.minicharts)
 library(htmltools)
 
-coordinates <- read.csv("Africaneo_dataset_geographical_coordinates_c.csv")
+coordinates <- read.csv("Africaneo_dataset_simplified_c.csv")
 SNPs <- read.table("SNPs_of_interest_analysis_clst.frq.strat", header = T,
                    sep = "\t", colClasses = c(rep("character", 4), rep("numeric", 3)))
 
@@ -17,7 +17,7 @@ SNP_coordinates <- merge(
   x = SNP,
   y = coordinates,
   by.x = "CLST",
-  by.y = "Population.label"
+  by.y = "Population_label"
 )
 
 dbSNP <- read.csv("dbSNP_retrieved.csv", header = F,
