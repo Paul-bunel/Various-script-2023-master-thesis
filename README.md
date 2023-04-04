@@ -8,7 +8,7 @@ Details of each file will be added later
 The first scripts that were made were those for retrieving the genes of interest. By retrieving, I mean multiple things :  
 
 For the differents SNPs positions that are presents in the H3Africa SNP chip :
-- Filter positions of the SNPs associated to the genes of interest in the list of SNPs presents in the H3Africa micro array. This was done with the script [retrieve_gene.ps1](https://github.com/Paul-bunel/Various-script-2023-master-thesis/blob/main/retrieve_genes.ps1) which is just a grep command looking for any line containing the name of our genes of interest.
+- Filter positions of the SNPs associated with the genes of interest in the list of SNPs presents in the H3Africa micro array. This was done with the script [retrieve_gene.ps1](https://github.com/Paul-bunel/Various-script-2023-master-thesis/blob/main/retrieve_genes.ps1) which is just a grep command looking for any line containing the name of our genes of interest.
 - Retrieve the rsID and alleles of each SNPs we got with the previous step. This was done with the script [dbSNP_retrieve.py](https://github.com/Paul-bunel/Various-script-2023-master-thesis/blob/main/dbSNP_retrieve.py). This script opens a csv file containing the previous SNPs, and makes queries on NCBI Entrez SNP database to get the information that we want for each SNP. Then, it writes the results in a "dbSNP_retrieved.csv" CSV file. Doesn't take any parameters but the code opens a file with a specific name.
 
 For the actual data genotyped from different populations in Africa, Europe and EastAsia :
@@ -42,7 +42,7 @@ Thanks to the [plink2](https://www.cog-genomics.org/plink/2.0/) software, I comp
 ../plink2 --fst CATPHENO report-variants --within clst_pops_of_interest.tfam --tfile ../AfricanNeo_and_Public_DB_minN10_Jan2022 --keep-fam pops_of_interest.tfam --out pops_of_interest_fst
 ```
 
-This command use the files `pops_of_interest.tfam`, that contains a subset of the main tfam file with only the population of interest, and `clst_pops_of_interest.tfam`, that is the exact same file with cluster names added at the end of each sample line. These files were generated with the following bash commands
+This command use the files `pops_of_interest.tfam`, which contains a subset of the main tfam file with only the population of interest, and `clst_pops_of_interest.tfam`, which is the exact same file with cluster names added at the end of each sample line. These files were generated with the following bash commands
 
 ```bash
 grep -wP '.*Japanese.*|.*Baka.*|.*Nigeria_Yoruba.*|DRC_((?!LubaLulua|Shi|Rega).)*' AfricanNeo_and_Public_DB_minN10_Jan2022.tfam > pops_of_interest/pops_of_interest.tfam
