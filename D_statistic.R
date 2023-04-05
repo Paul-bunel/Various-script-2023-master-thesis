@@ -23,8 +23,16 @@ genes_of_interest <- data.frame(
 )
 window_size <- 50000
 
-# Load every .fst.var file in SNPs/pops_of_interest
-# Then for each population, compute D statistic
+# Load genomic position of SNPs of interest
+
+SNPs_of_interest <- read.delim(
+  "SNPs/SNPs_of_interest/SNPs_of_interest.map",
+  header = FALSE,
+  col.names = c("CHR", "ID", "#", "POS")
+)
+
+# Load every .fst.var file in SNPs/pops_of_interest + use files names to get
+# populations names
 
 FSTs <- list()
 pops <- list()
@@ -36,134 +44,109 @@ for (file in fst_files) {
     path,
     col.names = c("CHROM", "POS", "ID", "NOBS", "FST")
   )
+  
+  FSTs[[file]]$FST[FSTs[[file]]$FST < 0] <- 0
 }
 
 pops <- unique(pops)
-na <- vector("list", length(pops))
-names(na) <- pops
 
-na <- c()
-read_plink2_fst_file <- function(pop1, pop2) {
-  path <- paste(
-    "SNPs/pops_of_interest/pops_of_interest_fst",pop1,pop2,"fst.var",
-    sep = "."
-  )
-  if (!file.exists(path)) {
-    path <- paste(
-      "SNPs/pops_of_interest/pops_of_interest_fst",pop2,pop1,"fst.var",
-      sep = "."
-    )
-    if (!file.exists(path)) {
-      return(data.frame())
-    }
-  }
-  p1p2 <- read.delim(path, col.names = c("CHROM", "POS", "ID", "NOBS", "FST"))
-  na <<- append(na, p1p2$ID[is.na(p1p2$FST)])
-  p1p2 <- p1p2[!is.na(p1p2$FST),]
-  p1p2$FST[p1p2$FST < 0] <- 0
+# Loop over populations names to compute D statistic for each
+
+# pops <- list("Japanese")
+for (pop in pops) {
+  pop_indexes <- grepl(pop, names(FSTs))
+  na <- c()
+  na <- sapply(FSTs[pop_indexes], \(x) {
+    return(x$ID[is.na(x$FST)])
+  })
+  na <- unlist(na, use.names = FALSE)
   
-  return(p1p2)
-}
+  tmp_pops <- sapply(FSTs[pop_indexes], \(x) {
+    return(x[!is.element(x$ID, na),])
+  }, simplify = FALSE)
+  
+  print(names(tmp_pops))
+  
+  desired_length <- nrow(FSTs[[1]]) - length(unique(na))
+  if (sum(sapply(tmp_pops, nrow) == rep(desired_length, 3)) != 3) {
+    print("ATTENTION MAUVAISE TAILLE DE TMP_POPS")
+  }
+  
+  tmp_SNPs_of_interest <- SNPs_of_interest[!is.element(SNPs_of_interest$ID, na),]
 
-jap_yor <- read_plink2_fst_file("Japanese", "Yoruba")
-jap_drc <- read_plink2_fst_file("Japanese", "DRC")
-jap_bak <- read_plink2_fst_file("Japanese", "Baka")
+  pop_D <- rowSums(sapply(tmp_pops, \(x) { (x$FST - mean(x$FST)) / sd(x$FST) }))
+  
+  pop_df <- data.frame(
+    CHR = tmp_pops[[1]]$CHROM,
+    POS = tmp_pops[[1]]$POS,
+    ID = tmp_pops[[1]]$ID,
+    D = pop_D
+  )
+  
+  # Following code for manhattan plot come from
+  # https://danielroelfs.com/blog/how-i-create-manhattan-plots-using-ggplot/
 
-jap_yor <- jap_yor[!is.element(jap_yor$ID, na),]
-jap_drc <- jap_drc[!is.element(jap_drc$ID, na),]
-jap_bak <- jap_bak[!is.element(jap_bak$ID, na),]
-
-mean_jap_yor <- mean(jap_yor$FST)
-sd_jap_yor <- sd(jap_yor$FST)
-
-mean_jap_drc <- mean(jap_drc$FST)
-sd_jap_drc <- sd(jap_drc$FST)
-
-mean_jap_bak <- mean(jap_bak$FST)
-sd_jap_bak <- sd(jap_bak$FST)
-
-
-jap_D <- ((jap_yor$FST - mean_jap_yor) / sd_jap_yor) +
-  ((jap_drc$FST - mean_jap_drc) / sd_jap_drc) +
-  ((jap_bak$FST - mean_jap_bak) / sd_jap_bak)
-
-jap <- data.frame(
-  CHR = jap_bak$CHROM, POS = jap_bak$POS, ID = jap_bak$ID,
-  jap_bak$NOBS, jap_bak$FST,
-  jap_drc$NOBS, jap_drc$FST,
-  jap_yor$NOBS, jap_yor$FST,
-  D = jap_D
-)
-
-SNPs_of_interest <- read.delim(
-  "SNPs/SNPs_of_interest/SNPs_of_interest.map",
-  header = FALSE,
-  col.names = c("CHR", "ID", "#", "POS")
-)
-SNPs_of_interest <- SNPs_of_interest[!is.element(SNPs_of_interest$ID, na),]
-
-# Following code for manhattan plot come from
-# https://danielroelfs.com/blog/how-i-create-manhattan-plots-using-ggplot/
-
-jap_cumul <- jap %>%
-  group_by(CHR) %>%
-  summarise(max_bp = max(POS)) %>%
-  mutate(bp_add = lag(cumsum(as.numeric(max_bp)), default = 0)) %>%
-  select(CHR, bp_add)
-
-jap <- jap %>%
-  inner_join(jap_cumul, by = "CHR") %>%
-  mutate(bp_cumul = POS + bp_add)
-
-jap_axis_set <- jap %>%
-  group_by(CHR) %>%
-  summarize(center = mean(bp_cumul))
-
-jap_genes_of_interest_window <- jap[as.logical(rowSums(
-  sapply(
-    1:ncol(genes_of_interest),
-    \(x) {
-      jap$CHR == genes_of_interest[1,x] & (
-        between(jap$POS,
-          genes_of_interest[2, x] - window_size,
-          genes_of_interest[2, x]
-        ) |
-        between(jap$POS,
-          genes_of_interest[3, x],
-          genes_of_interest[3, x] + window_size
+  pop_cumul <- pop_df %>%
+    group_by(CHR) %>%
+    summarise(max_bp = max(POS)) %>%
+    mutate(bp_add = lag(cumsum(as.numeric(max_bp)), default = 0)) %>%
+    select(CHR, bp_add)
+  
+  pop_df <- pop_df %>%
+    inner_join(pop_cumul, by = "CHR") %>%
+    mutate(bp_cumul = POS + bp_add)
+  
+  pop_axis_set <- pop_df %>%
+    group_by(CHR) %>%
+    summarize(center = mean(bp_cumul))
+  
+  pop_genes_of_interest_window <- pop_df[as.logical(rowSums(
+    sapply(
+      1:ncol(genes_of_interest),
+      \(x) {
+        pop_df$CHR == genes_of_interest[1, x] & (
+          between(pop_df$POS,
+            genes_of_interest[2, x] - window_size,
+            genes_of_interest[2, x]
+          ) |
+          between(pop_df$POS,
+            genes_of_interest[3, x],
+            genes_of_interest[3, x] + window_size
+          )
         )
-      )
-    }
-  )
-)),]
-
-manplot <- ggplot(jap, aes(x = bp_cumul, y = D)) +
-  geom_point(alpha = 0.75, aes(colour = ifelse(CHR %% 2 == 0, "1", "2"))) +
-  geom_point(
-    data = jap_genes_of_interest_window,
-    aes(x = bp_cumul, y = D, color = "4")
-  ) +
-  geom_point(
-    data = jap[jap$ID %in% SNPs_of_interest$ID,],
-    aes(x = bp_cumul, y = D, color = "0")
-  ) +
-  geom_hline(
-    yintercept = quantile(jap$D, 0.995),
-    color = "red",
-    linetype = "dashed"
-  ) +
-  scale_x_continuous(label = jap_axis_set$CHR, breaks = jap_axis_set$center) +
-  scale_y_continuous(limits = c(min(jap$D), max(jap$D))) +
-  scale_color_manual(values = setNames(
-    c("orange", "yellow", "#183059", "#276FBF"),
-    c("4", "0", "1", "2")
-  )) +
-  theme(
-    legend.position = "none",
-    panel.grid.major.x = element_blank(),
-    panel.grid.minor.x = element_blank(),
-    axis.title.y = element_markdown(),
-    axis.text.x = element_text(angle = 60, size = 8, vjust = 0.5)
-  )
-
-ggsave("plots/D_statistic/D_statistic_JAP.png", width=12, height=8, bg = "white")
+      }
+    )
+  )),]
+  
+  manplot <- ggplot(pop_df, aes(x = bp_cumul, y = D)) +
+    geom_point(alpha = 0.75, aes(colour = ifelse(CHR %% 2 == 0, "1", "2"))) +
+    geom_point(
+      data = pop_genes_of_interest_window,
+      aes(x = bp_cumul, y = D, color = "4")
+    ) +
+    geom_point(
+      data = pop_df[pop_df$ID %in% tmp_SNPs_of_interest$ID,],
+      aes(x = bp_cumul, y = D, color = "0")
+    ) +
+    geom_hline(
+      yintercept = quantile(pop_df$D, 0.995),
+      color = "red"
+      # linetype = "dashed"
+    ) +
+    scale_x_continuous(label = pop_axis_set$CHR, breaks = pop_axis_set$center) +
+    scale_y_continuous(limits = c(min(pop_df$D), max(pop_df$D))) +
+    scale_color_manual(values = setNames(
+      c("orange", "yellow", "#183059", "#276FBF"),
+      c("4", "0", "1", "2")
+    )) +
+    theme(
+      legend.position = "none",
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor.x = element_blank(),
+      axis.title.y = element_markdown(),
+      axis.text.x = element_text(angle = 60, size = 8, vjust = 0.5)
+    )
+  
+  plot_name <- paste0("plots/D_statistic/D_statistic_", pop, ".png")
+  ggsave(plot_name, width=12, height=8, bg = "white")
+}
