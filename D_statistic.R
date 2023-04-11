@@ -4,9 +4,9 @@
 # Output: The script compute D statistic for each SNP between every group of
 # population present in a directory containing PLINK .fst.var files, then
 # generate a plot at the following path :
-# plots/D_statistic/D_statistic_<pop>.png
+# results/D_statistic/D_statistic_<pop>.png
 #
-# How tu use: put the path of the directory containing your PLINK .fst.var
+# How to use: put the path of the directory containing your PLINK .fst.var
 # in the dir_path variable, then run the script
 # If you don't want to highlight SNPs or genes of interest, just make the
 # corresponding variables empty
@@ -76,8 +76,6 @@ for (pop in pops) {
     return(x[!is.element(x$ID, na),])
   }, simplify = FALSE)
   
-  print(names(tmp_pops))
-  
   desired_length <- nrow(FSTs[[1]]) - length(unique(na))
   if (sum(sapply(tmp_pops, nrow) == rep(desired_length, 3)) != 3) {
     print("ATTENTION MAUVAISE TAILLE DE TMP_POPS")
@@ -92,6 +90,14 @@ for (pop in pops) {
     POS = tmp_pops[[1]]$POS,
     ID = tmp_pops[[1]]$ID,
     D = pop_D
+  )
+  
+  res_file_name <- paste0("results/D_statistic/D_statistic_", pop, ".tsv")
+  write.table(pop_df,
+    file = res_file_name,
+    quote = FALSE,
+    sep = "\t",
+    row.names = FALSE
   )
   
   # Following code for manhattan plot come from
@@ -113,7 +119,7 @@ for (pop in pops) {
   
   pop_genes_of_interest_window <- pop_df[as.logical(rowSums(
     sapply(
-      1:ncol(genes_of_interest),
+      seq_len(ncol(genes_of_interest)),
       \(x) {
         pop_df$CHR == genes_of_interest[1, x] & (
           between(pop_df$POS,
@@ -130,34 +136,71 @@ for (pop in pops) {
   )),]
   
   manplot <- ggplot(pop_df, aes(x = bp_cumul, y = D)) +
-    geom_point(alpha = 0.75, aes(colour = ifelse(CHR %% 2 == 0, "1", "2"))) +
+    geom_point(alpha = 0.75, aes(colour = ifelse(CHR %% 2 == 0, "even", "odd"))) +
     geom_point(
       data = pop_genes_of_interest_window,
-      aes(x = bp_cumul, y = D, color = "4")
+      aes(x = bp_cumul, y = D, color = "genes_window")
     ) +
     geom_point(
       data = pop_df[pop_df$ID %in% tmp_SNPs_of_interest$ID,],
-      aes(x = bp_cumul, y = D, color = "0")
+      aes(x = bp_cumul, y = D, color = "SNPs_interest")
     ) +
     geom_hline(
-      yintercept = quantile(pop_df$D, 0.995),
-      color = "red"
-      linetype = "dashed"
+      linetype = "dashed",
+      aes(
+        yintercept = quantile(D, 0.995),
+        color = "quantile"
+      )
     ) +
     scale_x_continuous(label = pop_axis_set$CHR, breaks = pop_axis_set$center) +
     scale_y_continuous(limits = c(min(pop_df$D), max(pop_df$D))) +
-    scale_color_manual(values = setNames(
-      c("orange", "yellow", "#183059", "#276FBF"),
-      c("4", "0", "1", "2")
-    )) +
+    scale_color_manual(
+      breaks = c(
+        "even",
+        "odd",
+        "genes_window",
+        "SNPs_interest",
+        "quantile"
+      ),
+      values = c(
+        "even" = "#183059",
+        "odd" = "#276FBF",
+        "genes_window" = "orange",
+        "SNPs_interest" = "yellow",
+        "quantile" = "red"
+      ),
+      labels = c(
+        "Even chromosome",
+        "Odd Chromosome",
+        str_wrap(paste0("Window around genes of interest (", window_size, " bp)"), 25),
+        "SNPs of interest",
+        "Genome-wide 0.995 quantile"
+      ),
+      guide = guide_legend(title = "Legend", override.aes = list(
+        linetype = c(rep("blank", 4), "dashed"),
+        shape = c(rep(19, 4), NA)
+      ))
+    ) +
     theme(
-      legend.position = "none",
+      plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+      legend.position = "right",
+      legend.justification = "top",
+      legend.title = element_text(size = 12, face = "bold"),
+      legend.text = element_text(size = 9),
+      panel.background = element_rect(fill = "#ebebeb", color = "#ebebeb"),
+      panel.grid.major = element_line(color = "white", linewidth = 1),
+      panel.grid.minor = element_line(color = "white", linewidth = 0.75),
       panel.grid.major.x = element_blank(),
       panel.grid.minor.x = element_blank(),
-      axis.title.y = element_markdown(),
-      axis.text.x = element_text(angle = 60, size = 8, vjust = 0.5)
+      axis.title.y = element_text(size = 12),
+      axis.title.x = element_text(size = 12),
+      axis.text.x = element_text(angle = 60, size = 8, vjust = 0.5),
+    ) +
+    labs(
+      title = paste(pop, "D statistic for each SNP"),
+      x = "Position on genome"
     )
 
-  plot_name <- paste0("plots/D_statistic/D_statistic_", pop, ".png")
-  ggsave(plot_name, width = 12, height = 8, bg = "white")
+  plot_name <- paste0("results/D_statistic/D_statistic_", pop, ".png")
+  ggsave(plot_name, width = 14, height = 8, bg = "white")
 }
