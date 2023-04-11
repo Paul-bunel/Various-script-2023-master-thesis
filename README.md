@@ -36,6 +36,18 @@ This R script takes the same files as the previous one, and contains differents 
 
 ## Testing selection
 
+Protocol:
+
+Compute D and PBS statistics for some groups of population, then observe extreme outliers and perform statistical tests to get an idea of the power of selection on the SNP.
+
+These statistics are calculated using these formulas :
+
+$D_i = \sum_{j \neq i}{\frac{F_{ST}^{ij} - E[F_{ST}^{ij}]}{sd[F_{ST}^{ij}]}}$ ([Akey et al. 2010](https://doi.org/10.1073/pnas.0909918107)) where $E[F_{ST}^{ij}]$ is the mean $F_{ST}$ across all loci between populations $i$ and $j$, and $sd[F_{ST}^{ij}]$ is the standard deviation of $F_{ST}$ between population $i$ and $j$.
+
+$T^{ij} = -log(1 - F_{ST}^{ij})$, $PBS = \frac{T^{AB} + T^{AC} - T^{BC}}{2}$ ([Yi et al. 2010](https://doi.org/10.1126/science.1190371)) where $A$ is the target population, $B$ is the reference (closely related population) and $C$ is the outgroup (most distantly related population).
+
+### Computing FST
+
 Thanks to the [plink2](https://www.cog-genomics.org/plink/2.0/) software, I computed the pairwise $F_{ST}$ statistic for some groups of population with the command
 
 ```bash
@@ -52,3 +64,13 @@ sed -r "s/(.*Baka\s.*)\s\w\s\w\s\w\s\w/\1 Baka/" tmp.tfam > clst_pops_of_interes
 sed -r "s/(.*Yoruba.*\s.*)\s\w\s\w\s\w\s\w/\1 Yoruba/" clst_pops_of_interest.tfam > tmp.tfam
 sed -r "s/(.*Japanese.*\s.*)\s\w\s\w\s\w\s\w/\1 Japanese/" tmp.tfam > clst_pops_of_interest.tfam
 ```
+
+### D statistic
+
+The R script [D_statistic.R](https://github.com/Paul-bunel/Various-script-2023-master-thesis/blob/main/D_statistic.R) compute the D statistic for each SNP in each population present in a set of PLINK .fst.var files, then generate a plot at the path `plots/D_statistic/D_statistic_<pop>.png`.
+
+How tu use: put the path of the directory containing your PLINK .fst.var in the dir_path variable, then run the script.  
+If you don't want to highlight SNPs or genes of interest, just make the corresponding variables empty.
+
+### PBS
+

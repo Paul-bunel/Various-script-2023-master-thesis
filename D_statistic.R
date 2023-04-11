@@ -1,8 +1,19 @@
+# This script is written by Paul Bunel (paulbunel34@gmail.com)
+# GitHub: https://github.com/Paul-bunel
+#
+# Output: The script compute D statistic for each SNP between every group of
+# population present in a directory containing PLINK .fst.var files, then
+# generate a plot at the following path :
+# plots/D_statistic/D_statistic_<pop>.png
+#
+# How tu use: put the path of the directory containing your PLINK .fst.var
+# in the dir_path variable, then run the script
+# If you don't want to highlight SNPs or genes of interest, just make the
+# corresponding variables empty
+
 library(tidyverse)
 library(ggtext)
 library(normentR)
-
-# Compute D statistic for each SNP between two groups of population
 
 # Load genomic positions of genes of interest
 
@@ -36,7 +47,8 @@ SNPs_of_interest <- read.delim(
 
 FSTs <- list()
 pops <- list()
-fst_files <- list.files(path = "SNPs/pops_of_interest", pattern = "*.var")
+dir_path <- "SNPs/pops_of_interest"
+fst_files <- list.files(path = dir_path, pattern = "*.fst.var")
 for (file in fst_files) {
   pops <- append(pops, strsplit(file, ".", fixed = TRUE)[[1]][2:3])
   path <- paste0("SNPs/pops_of_interest/", file)
@@ -50,9 +62,8 @@ for (file in fst_files) {
 
 pops <- unique(pops)
 
-# Loop over populations names to compute D statistic for each
+# Loop over populations names to compute D statistic and genereate plot for each
 
-# pops <- list("Japanese")
 for (pop in pops) {
   pop_indexes <- grepl(pop, names(FSTs))
   na <- c()
@@ -131,7 +142,7 @@ for (pop in pops) {
     geom_hline(
       yintercept = quantile(pop_df$D, 0.995),
       color = "red"
-      # linetype = "dashed"
+      linetype = "dashed"
     ) +
     scale_x_continuous(label = pop_axis_set$CHR, breaks = pop_axis_set$center) +
     scale_y_continuous(limits = c(min(pop_df$D), max(pop_df$D))) +
@@ -146,7 +157,7 @@ for (pop in pops) {
       axis.title.y = element_markdown(),
       axis.text.x = element_text(angle = 60, size = 8, vjust = 0.5)
     )
-  
+
   plot_name <- paste0("plots/D_statistic/D_statistic_", pop, ".png")
-  ggsave(plot_name, width=12, height=8, bg = "white")
+  ggsave(plot_name, width = 12, height = 8, bg = "white")
 }
