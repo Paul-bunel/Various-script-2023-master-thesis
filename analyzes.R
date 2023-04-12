@@ -139,6 +139,4 @@ freq_mean_by_lifestyle %>%
     yend = MAF
   ))
 
-
-
-
+manhattan(test, chr="LIFESTYLE", bp="LIFESTYLE", p="MAF", snp="CODE")
