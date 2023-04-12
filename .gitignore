@@ -1,0 +1,11 @@
+Groups/
+!Groups/All.png
+misc/
+PBS_statistic/
+SNPs/
+!SNPs/*py
+!SNPs/*.ps1
+*.xlsx
+*.csv
+*.tsv
+.Rhistory
