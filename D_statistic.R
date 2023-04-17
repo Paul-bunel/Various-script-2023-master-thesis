@@ -1,10 +1,11 @@
-# This script is written by Paul Bunel (paulbunel34@gmail.com)
+# This script is written by Paul Bunel (paulbunel34@gmail.com) 2O23
 # GitHub: https://github.com/Paul-bunel
 #
 # Output: The script compute D statistic for each SNP between every group of
 # population present in a directory containing PLINK .fst.var files, then
 # generate a plot at the following path :
 # results/D_statistic/D_statistic_<pop>.png
+# Also save a tsv file at the same path containing the D statistic computed
 #
 # How to use: put the path of the directory containing your PLINK .fst.var
 # in the dir_path variable, then run the script
@@ -31,27 +32,34 @@ genes_of_interest <- data.frame(
   AMY1C = c(1, 104292276, 104301314),
   AMY2A = c(1, 104159999, 104168402),
   AMY2B = c(1, 104096437, 104122156)
+  # CD36 = c(7, 79998891, 80308593)
 )
 window_size <- 50000
 
 # Load genomic position of SNPs of interest
 
 SNPs_of_interest <- read.delim(
-  "SNPs/SNPs_of_interest/SNPs_of_interest.map",
+  "Africaneo_dataset/SNPs_of_interest/SNPs_of_interest.map",
   header = FALSE,
   col.names = c("CHR", "ID", "#", "POS")
 )
+
+# dbSNP <- read.delim("Africaneo_dataset/h3achip-annotated-with-gene.bed",
+#   header = F,
+#   col.names = c("CHR", "N", "POS", "GENE")
+#   # colClasses = rep("character", 5)
+# )
 
 # Load every .fst.var file in SNPs/pops_of_interest + use files names to get
 # populations names
 
 FSTs <- list()
 pops <- list()
-dir_path <- "SNPs/pops_of_interest"
+dir_path <- "Africaneo_dataset/pops_of_interest"
 fst_files <- list.files(path = dir_path, pattern = "*.fst.var")
 for (file in fst_files) {
   pops <- append(pops, strsplit(file, ".", fixed = TRUE)[[1]][2:3])
-  path <- paste0("SNPs/pops_of_interest/", file)
+  path <- paste0("Africaneo_dataset/pops_of_interest/", file)
   FSTs[[file]] <- read.delim(
     path,
     col.names = c("CHROM", "POS", "ID", "NOBS", "FST")
@@ -64,6 +72,7 @@ pops <- unique(pops)
 
 # Loop over populations names to compute D statistic and genereate plot for each
 
+# pops <- c("Yoruba")
 for (pop in pops) {
   pop_indexes <- grepl(pop, names(FSTs))
   na <- c()
@@ -76,11 +85,6 @@ for (pop in pops) {
     return(x[!is.element(x$ID, na),])
   }, simplify = FALSE)
   
-  desired_length <- nrow(FSTs[[1]]) - length(unique(na))
-  if (sum(sapply(tmp_pops, nrow) == rep(desired_length, 3)) != 3) {
-    print("ATTENTION MAUVAISE TAILLE DE TMP_POPS")
-  }
-  
   tmp_SNPs_of_interest <- SNPs_of_interest[!is.element(SNPs_of_interest$ID, na),]
 
   pop_D <- rowSums(sapply(tmp_pops, \(x) { (x$FST - mean(x$FST)) / sd(x$FST) }))
@@ -92,7 +96,7 @@ for (pop in pops) {
     D = pop_D
   )
   
-  res_file_name <- paste0("results/D_statistic/D_statistic_", pop, ".tsv")
+  res_file_name <- paste0("results/tmp/D_statistic_", pop, ".tsv")
   write.table(pop_df,
     file = res_file_name,
     quote = FALSE,
@@ -100,7 +104,7 @@ for (pop in pops) {
     row.names = FALSE
   )
   
-  # Following code for manhattan plot come from
+  # Following code for plot was inspired by the code from:
   # https://danielroelfs.com/blog/how-i-create-manhattan-plots-using-ggplot/
 
   pop_cumul <- pop_df %>%
@@ -135,6 +139,13 @@ for (pop in pops) {
     )
   )),]
   
+  # sof <- pop_df[
+  #   pop_df$CHR == 7 &
+  #     pop_df$bp_cumul > 1310000000 &
+  #     pop_df$bp_cumul < 1320000000 &
+  #     pop_df$D > quantile(pop_df$D, 0.995)
+  # , ]
+  
   manplot <- ggplot(pop_df, aes(x = bp_cumul, y = D)) +
     geom_point(alpha = 0.75, aes(colour = ifelse(CHR %% 2 == 0, "even", "odd"))) +
     geom_point(
@@ -152,6 +163,8 @@ for (pop in pops) {
         color = "quantile"
       )
     ) +
+    # geom_vline(linetype="dashed", xintercept = 1312567881, color = "yellow") +
+    # geom_vline(linetype="dashed", xintercept = 1312733432, color = "green") +
     scale_x_continuous(label = pop_axis_set$CHR, breaks = pop_axis_set$center) +
     scale_y_continuous(limits = c(min(pop_df$D), max(pop_df$D))) +
     scale_color_manual(
@@ -199,8 +212,25 @@ for (pop in pops) {
     labs(
       title = paste(pop, "D statistic for each SNP"),
       x = "Position on genome"
+    ) +
+    geom_rect(
+      # data=matrix_amy1,
+      # inherit.aes=FALSE,
+      aes(xmin=79998891+1232462990, xmax=80308593+1232462990, ymin=-Inf, ymax=+Inf),
+      color="transparent",
+      fill="green",
+      alpha=0.3
     )
+    
+    # coord_cartesian(xlim = c(1310000000, 1320000000))
+    # geom_text(aes(label = ifelse(
+    #       POS %in% sof$POS & CHR == 7,
+    #       dbSNP$GENE[dbSNP$CHR == 7 & dbSNP$POS %in% sof$POS],
+    #       ''
+    #     )),
+    #   hjust = 0, vjust = 0
+    # )
 
-  plot_name <- paste0("results/D_statistic/D_statistic_", pop, ".png")
+  plot_name <- paste0("results/tmp/D_statistic_", pop, ".png")
   ggsave(plot_name, width = 14, height = 8, bg = "white")
 }

@@ -57,7 +57,7 @@ Thanks to the [plink2](https://www.cog-genomics.org/plink/2.0/) software, I comp
 This command use the files `pops_of_interest.tfam`, which contains a subset of the main tfam file with only the population of interest, and `clst_pops_of_interest.tfam`, which is the exact same file with cluster names added at the end of each sample line. These files were generated with the following bash commands
 
 ```bash
-grep -wP '.*Japanese.*|.*Baka.*|.*Nigeria_Yoruba.*|DRC_((?!LubaLulua|Shi|Rega).)*' AfricanNeo_and_Public_DB_minN10_Jan2022.tfam > pops_of_interest/pops_of_interest.tfam
+grep -f POI.txt ../AfricanNeo_and_Public_DB_minN10_Jan2022.tfam > pops_of_interest.tfam
 
 sed -r "s/(DRC.*\s.*)\s\w\s\w\s\w\s\w/\1 DRC/" pops_of_interest.tfam > tmp.tfam
 sed -r "s/(.*Baka\s.*)\s\w\s\w\s\w\s\w/\1 Baka/" tmp.tfam > clst_pops_of_interest.tfam
@@ -69,7 +69,7 @@ sed -r "s/(.*Japanese.*\s.*)\s\w\s\w\s\w\s\w/\1 Japanese/" tmp.tfam > clst_pops_
 
 The R script [D_statistic.R](https://github.com/Paul-bunel/Various-script-2023-master-thesis/blob/main/D_statistic.R) compute the D statistic for each SNP in each population present in a set of PLINK .fst.var files, then generate a plot at the path `plots/D_statistic/D_statistic_<pop>.png`.
 
-How tu use: put the path of the directory containing your PLINK .fst.var in the dir_path variable, then run the script.  
+How tu use: put the path of the directory containing your PLINK `.fst.var` in the `dir_path` variable, then run the script.  
 If you don't want to highlight SNPs or genes of interest, just make the corresponding variables empty.
 
 ### PBS

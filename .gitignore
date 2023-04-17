@@ -1,10 +1,12 @@
-Groups/*
-!Groups/All.png
+Africaneo_dataset/*
+!Africaneo_dataset/Groups
+Africaneo_dataset/Groups/*
+!Africaneo_dataset/Groups/All.png
+!Africaneo_dataset/SNPs_of_interest
+Africaneo_dataset/SNPs_of_interest/*
 misc/*
 PBS_statistic/*
-SNPs/*
-!SNPs/SNPs_of_interest
-SNPs/SNPs_of_interest/*
+results/tmp
 !*.py
 !*.ps1
 *.csv
