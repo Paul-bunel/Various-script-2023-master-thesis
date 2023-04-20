@@ -32,7 +32,6 @@ genes_of_interest <- data.frame(
   AMY1C = c(1, 104292276, 104301314),
   AMY2A = c(1, 104159999, 104168402),
   AMY2B = c(1, 104096437, 104122156)
-  # CD36 = c(7, 79998891, 80308593)
 )
 window_size <- 50000
 
@@ -50,36 +49,41 @@ SNPs_of_interest <- read.delim(
 #                     # colClasses = rep("character", 5)
 # )
 
-# Load every .fst.var file in SNPs/pops_of_interest
+# Load .fst.var files in dir_path
 
-trios <- list(
-  c("Baka", "Yoruba", "Japanese"),
-  c("Baka", "DRC", "Japanese")
-)
+reference <- "Yoruba"
+outgroup <- "Japanese"
 
 FSTs <- list()
+targets <- list()
 dir_path <- "Africaneo_dataset/pops_of_interest"
 fst_files <- list.files(path = dir_path, pattern = "*.fst.var")
 for (file in fst_files) {
   pops <- strsplit(file, ".", fixed = TRUE)[[1]][2:3]
-  if (any(colSums(sapply(trios, \(x) { pops %in% x })) == 2)) {
+  if (reference %in% pops || outgroup %in% pops) {
+    targets <- append(targets, pops)
     path <- paste0("Africaneo_dataset/pops_of_interest/", file)
     FSTs[[file]] <- read.delim(
       path,
       col.names = c("CHROM", "POS", "ID", "NOBS", "FST")
     )
-  
+    
     FSTs[[file]]$FST[FSTs[[file]]$FST < 0] <- 0
   }
 }
 
-for (trio in trios) {
+targets <- unique(targets)
+targets <- targets[targets != reference]
+targets <- targets[targets != outgroup]
+
+BC_index <- grepl(reference, names(FSTs)) & grepl(outgroup, names(FSTs))
+
+for (target in targets) {
   # Here, target, reference and outgroup population will be designed with letters
   # A, B and C, respectively.
   
-  AB_index <- grepl(trio[1], names(FSTs)) & grepl(trio[2], names(FSTs))
-  AC_index <- grepl(trio[1], names(FSTs)) & grepl(trio[3], names(FSTs))
-  BC_index <- grepl(trio[2], names(FSTs)) & grepl(trio[3], names(FSTs))
+  AB_index <- grepl(target, names(FSTs)) & grepl(reference, names(FSTs))
+  AC_index <- grepl(target, names(FSTs)) & grepl(outgroup, names(FSTs))
   
   na <- c()
   na <- sapply(FSTs[AB_index | AC_index | BC_index], \(x) {
@@ -106,7 +110,11 @@ for (trio in trios) {
     PBS = PBS
   )
   
-  res_file_name <- paste0("results/tmp/PBS_", paste(trio, collapse = "_"), ".tsv")
+  res_file_name <- paste0(
+    "results/tmp/PBS_",
+    paste(target, reference, outgroup, sep = "_"),
+    ".tsv"
+  )
   write.table(trio_df,
     file = res_file_name,
     quote = FALSE,
@@ -220,7 +228,8 @@ for (trio in trios) {
       axis.text.x = element_text(angle = 60, size = 8, vjust = 0.5),
     ) +
     labs(
-      title = paste(trio, "PBS for each SNP"),
+      title = paste(target, "PBS for each SNP, with", reference,
+                    "as reference and", outgroup, "as outgroup."),
       x = "Position on genome"
     ) #+
     # geom_rect(
@@ -241,7 +250,10 @@ for (trio in trios) {
   #   hjust = 0, vjust = 0
   # )
   
-  plot_name <- paste0("results/tmp/PBS_", paste(trio, collapse = "_"), ".png")
+  plot_name <- paste0(
+    "results/tmp/PBS_",
+    paste(target, reference, outgroup, sep = "_"),
+    ".png"
+  )
   ggsave(plot_name, width = 14, height = 8, bg = "white")
-  
 }

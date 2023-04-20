@@ -32,7 +32,6 @@ genes_of_interest <- data.frame(
   AMY1C = c(1, 104292276, 104301314),
   AMY2A = c(1, 104159999, 104168402),
   AMY2B = c(1, 104096437, 104122156)
-  # CD36 = c(7, 79998891, 80308593)
 )
 window_size <- 50000
 
@@ -50,7 +49,7 @@ SNPs_of_interest <- read.delim(
 #   # colClasses = rep("character", 5)
 # )
 
-# Load every .fst.var file in SNPs/pops_of_interest + use files names to get
+# Load every .fst.var file in dir_path + use files names to get
 # populations names
 
 FSTs <- list()
