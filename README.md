@@ -28,7 +28,7 @@ This basic python scripts checks in the file with the populations' coordinates i
 
 ### [pie_charts_allele_frequencies.R](https://github.com/Paul-bunel/Various-script-2023-master-thesis/blob/main/pie_charts_allele_frequencies.R)
 
-This R script takes the file containing populations' coordinates (corrected with `modifiy_duplicate_coords.py`) and the file with SNPs frequencies, and represent them on a world map. An exemple of map is visible at the adress : https://paul-bunel.github.io/Various-script-2023-master-thesis/results/map.html
+This R script takes the file containing populations' coordinates (corrected with `modifiy_duplicate_coords.py`) and the file with SNPs frequencies, and represents them on a world map. An exemple of map is visible at the adress : https://paul-bunel.github.io/Various-script-2023-master-thesis/results/map.html
 
 ### [analyzes.R](https://github.com/Paul-bunel/Various-script-2023-master-thesis/blob/main/analyzes.R)
 
@@ -54,23 +54,37 @@ Thanks to the [plink2](https://www.cog-genomics.org/plink/2.0/) software, I comp
 ../plink2 --fst CATPHENO report-variants --within clst_pops_of_interest.tfam --tfile ../AfricanNeo_and_Public_DB_minN10_Jan2022 --keep-fam pops_of_interest.tfam --out pops_of_interest_fst
 ```
 
-This command use the files `pops_of_interest.tfam`, which contains a subset of the main tfam file with only the population of interest, and `clst_pops_of_interest.tfam`, which is the exact same file with cluster names added at the end of each sample line. These files were generated with the following bash commands
+This command uses the files `pops_of_interest.tfam`, which contains a subset of the main tfam file with only the population of interest, and `clst_pops_of_interest.tfam`, which is the exact same file with cluster names added at the end of each sample line. These files were generated with the following bash commands :
 
 ```bash
 grep -f POI.txt ../AfricanNeo_and_Public_DB_minN10_Jan2022.tfam > pops_of_interest.tfam
 
 sed -r "s/(DRC.*\s.*)\s\w\s\w\s\w\s\w/\1 DRC/" pops_of_interest.tfam > tmp.tfam
-sed -r "s/(.*Baka\s.*)\s\w\s\w\s\w\s\w/\1 Baka/" tmp.tfam > clst_pops_of_interest.tfam
+sed -r "s/(Lebanon.*\s.*)\s\w\s\w\s\w\s\w/\1 Lebanon/" tmp.tfam > clst_pops_of_interest.tfam
 sed -r "s/(.*Yoruba.*\s.*)\s\w\s\w\s\w\s\w/\1 Yoruba/" clst_pops_of_interest.tfam > tmp.tfam
-sed -r "s/(.*Japanese.*\s.*)\s\w\s\w\s\w\s\w/\1 Japanese/" tmp.tfam > clst_pops_of_interest.tfam
+sed -r "s/(.*Baganda\s.*)\s\w\s\w\s\w\s\w/\1 Baganda/" tmp.tfam > clst_pops_of_interest.tfam
+sed -r "s/(Mozambique.*\s.*)\s\w\s\w\s\w\s\w/\1 Mozambique/" clst_pops_of_interest.tfam > tmp.tfam
+sed -r "s/(.*Zulu.*\s.*)\s\w\s\w\s\w\s\w/\1 Zulu/" tmp.tfam > clst_pops_of_interest.tfam
+sed -r "s/(Europe.*\s.*)\s\w\s\w\s\w\s\w/\1 Europe/" clst_pops_of_interest.tfam > tmp.tfam
+sed -r "s/(Gambia.*\s.*)\s\w\s\w\s\w\s\w/\1 Gambia/" tmp.tfam > clst_pops_of_interest.tfam
+sed -r "s/(.*Hadza\s.*)\s\w\s\w\s\w\s\w/\1 Hadza/" clst_pops_of_interest.tfam > tmp.tfam
+sed -r "s/(Namibia.*\s.*)\s\w\s\w\s\w\s\w/\1 Namibia_HG/" tmp.tfam > clst_pops_of_interest.tfam
+sed -r "s/(.*Japanese.*\s.*)\s\w\s\w\s\w\s\w/\1 Japanese/" clst_pops_of_interest.tfam > tmp.tfam
+sed -r "s/(.*Baka\s.*)\s\w\s\w\s\w\s\w/\1 Baka/" tmp.tfam > clst_pops_of_interest.tfam
 ```
 
 ### D statistic
 
-The R script [D_statistic.R](https://github.com/Paul-bunel/Various-script-2023-master-thesis/blob/main/D_statistic.R) compute the D statistic for each SNP in each population present in a set of PLINK .fst.var files, then generate a plot at the path `plots/D_statistic/D_statistic_<pop>.png`.
+The R script [D_statistic.R](https://github.com/Paul-bunel/Various-script-2023-master-thesis/blob/main/D_statistic.R) computes the D statistic for all SNP in each population present in a set of PLINK .fst.var files, then generates a plot at the path `plots/D_statistic/D_statistic_<pop>.png`.  
+Also saves a tsv file at the same path containing the D statistic computed.
 
 How tu use: put the path of the directory containing your PLINK `.fst.var` in the `dir_path` variable, then run the script.  
 If you don't want to highlight SNPs or genes of interest, just make the corresponding variables empty.
 
 ### PBS
 
+The R script [PBS.R](https://github.com/Paul-bunel/Various-script-2023-master-thesis/blob/main/PBS.R) computes PBS for each SNP, making trios of population from the `reference` and `outgroup` variable, along with the targets list, then generates a plot at the following path : `results/D_statistic/PBS_<target>_<reference>_<outgroup>.png`.  
+Also saves a tsv file at the same path containing the PBS computed.
+
+How to use: put the path of the directory containing your PLINK .fst.var in the dir_path variable, then put the name of the reference and an outgroup population you want in the corresponding variables, then run the script.  
+If you don't want to highlight SNPs or genes of interest, just make the corresponding variables empty.

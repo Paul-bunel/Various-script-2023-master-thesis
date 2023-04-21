@@ -1,11 +1,11 @@
 # This script is written by Paul Bunel (paulbunel34@gmail.com) 2O23
 # GitHub: https://github.com/Paul-bunel
 #
-# Output: The script compute D statistic for each SNP between every group of
-# population present in a directory containing PLINK .fst.var files, then
-# generate a plot at the following path :
+# Output: The script computes D statistic from Akey et al. (2010) for all SNP in
+# each populations present in a directory containing PLINK .fst.var files, then
+# generates a plot at the following path :
 # results/D_statistic/D_statistic_<pop>.png
-# Also save a tsv file at the same path containing the D statistic computed
+# Also saves a tsv file at the same path containing the computed D statistic
 #
 # How to use: put the path of the directory containing your PLINK .fst.var
 # in the dir_path variable, then run the script
@@ -43,6 +43,8 @@ SNPs_of_interest <- read.delim(
   col.names = c("CHR", "ID", "#", "POS")
 )
 
+# Load file containing names of genes associated with SNP if needed
+
 # dbSNP <- read.delim("Africaneo_dataset/h3achip-annotated-with-gene.bed",
 #   header = F,
 #   col.names = c("CHR", "N", "POS", "GENE")
@@ -71,20 +73,24 @@ pops <- unique(pops)
 
 # Loop over populations names to compute D statistic and genereate plot for each
 
-# pops <- c("Yoruba")
 for (pop in pops) {
   pop_indexes <- grepl(pop, names(FSTs))
+
+  # Remove NA values
+
   na <- c()
   na <- sapply(FSTs[pop_indexes], \(x) {
     return(x$ID[is.na(x$FST)])
   })
   na <- unlist(na, use.names = FALSE)
   
+  tmp_SNPs_of_interest <- SNPs_of_interest[!is.element(SNPs_of_interest$ID, na),]
+
   tmp_pops <- sapply(FSTs[pop_indexes], \(x) {
     return(x[!is.element(x$ID, na),])
   }, simplify = FALSE)
-  
-  tmp_SNPs_of_interest <- SNPs_of_interest[!is.element(SNPs_of_interest$ID, na),]
+
+  # Compute D statistic for each SNP and store it in a list
 
   pop_D <- rowSums(sapply(tmp_pops, \(x) { (x$FST - mean(x$FST)) / sd(x$FST) }))
   
@@ -136,15 +142,8 @@ for (pop in pops) {
         )
       }
     )
-  )),]
-  
-  # sof <- pop_df[
-  #   pop_df$CHR == 7 &
-  #     pop_df$bp_cumul > 1310000000 &
-  #     pop_df$bp_cumul < 1320000000 &
-  #     pop_df$D > quantile(pop_df$D, 0.995)
-  # , ]
-  
+  )), ]
+
   manplot <- ggplot(pop_df, aes(x = bp_cumul, y = D)) +
     geom_point(alpha = 0.75, aes(colour = ifelse(CHR %% 2 == 0, "even", "odd"))) +
     geom_point(
@@ -162,8 +161,6 @@ for (pop in pops) {
         color = "quantile"
       )
     ) +
-    # geom_vline(linetype="dashed", xintercept = 1312567881, color = "yellow") +
-    # geom_vline(linetype="dashed", xintercept = 1312733432, color = "green") +
     scale_x_continuous(label = pop_axis_set$CHR, breaks = pop_axis_set$center) +
     scale_y_continuous(limits = c(min(pop_df$D), max(pop_df$D))) +
     scale_color_manual(
@@ -211,16 +208,13 @@ for (pop in pops) {
     labs(
       title = paste(pop, "D statistic for each SNP"),
       x = "Position on genome"
-    ) +
-    geom_rect(
-      # data=matrix_amy1,
-      # inherit.aes=FALSE,
-      aes(xmin=79998891+1232462990, xmax=80308593+1232462990, ymin=-Inf, ymax=+Inf),
-      color="transparent",
-      fill="green",
-      alpha=0.3
-    )
-    
+    )# +
+    # geom_rect(
+    #   aes(xmin=79998891+1232462990, xmax=80308593+1232462990, ymin=-Inf, ymax=+Inf),
+    #   color="transparent",
+    #   fill="green",
+    #   alpha=0.3
+    # )# +
     # coord_cartesian(xlim = c(1310000000, 1320000000))
     # geom_text(aes(label = ifelse(
     #       POS %in% sof$POS & CHR == 7,
@@ -229,6 +223,9 @@ for (pop in pops) {
     #     )),
     #   hjust = 0, vjust = 0
     # )
+
+    # Commented parts after "labs" instruction are for higlighting the CD36 gene
+    # region and zoom on it, respectively
 
   plot_name <- paste0("results/tmp/D_statistic_", pop, ".png")
   ggsave(plot_name, width = 14, height = 8, bg = "white")

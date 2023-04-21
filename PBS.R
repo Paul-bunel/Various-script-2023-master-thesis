@@ -1,14 +1,14 @@
 # This script is written by Paul Bunel (paulbunel34@gmail.com) 2023
 # GitHub: https://github.com/Paul-bunel
 #
-# Output: The script compute PBS for each SNP and for each trios chosen in the
-# trios variable, then generate a plot at the following path :
-# results/D_statistic/PBS_<pop>.png
-# Also save a tsv file at the same path containing the PBS computed
+# Output: The script computes PBS making trios of population from the reference
+# and outgroup variable, along with the targets list, then generates a plot at
+# the following path : results/D_statistic/PBS_<target>_<reference>_<outgroup>.png
+# Also saves a tsv file at the same path containing the PBS computed
 #
 # How to use: put the path of the directory containing your PLINK .fst.var
-# in the dir_path variable, then put your population trios in the trios variable,
-# each trio being a vector (target, reference, outgroup), then run the script.
+# in the dir_path variable, then put the name of the reference and an outgroup
+# population you want in the corresponding variables, then run the script.
 # If you don't want to highlight SNPs or genes of interest, just make the
 # corresponding variables empty
 
@@ -43,13 +43,16 @@ SNPs_of_interest <- read.delim(
   col.names = c("CHR", "ID", "#", "POS")
 )
 
+# Load file containing names of genes associated with SNP if needed
+
 # dbSNP <- read.delim("Africaneo_dataset/h3achip-annotated-with-gene.bed",
 #                     header = F,
 #                     col.names = c("CHR", "N", "POS", "GENE")
 #                     # colClasses = rep("character", 5)
 # )
 
-# Load .fst.var files in dir_path
+# Load .fst.var files in dir_path that contain either the reference or outgroup
+# population in their name + use files names to get targets populations names
 
 reference <- "Yoruba"
 outgroup <- "Japanese"
@@ -78,13 +81,17 @@ targets <- targets[targets != outgroup]
 
 BC_index <- grepl(reference, names(FSTs)) & grepl(outgroup, names(FSTs))
 
+# Loop over targets to compute PBS and generate a plot for each
+
 for (target in targets) {
-  # Here, target, reference and outgroup population will be designed with letters
-  # A, B and C, respectively.
+  # Here, target, reference and outgroup population will be designed with
+  # letters A, B and C, respectively.
   
   AB_index <- grepl(target, names(FSTs)) & grepl(reference, names(FSTs))
   AC_index <- grepl(target, names(FSTs)) & grepl(outgroup, names(FSTs))
-  
+
+  # Remove NA values
+
   na <- c()
   na <- sapply(FSTs[AB_index | AC_index | BC_index], \(x) {
     return(x$ID[is.na(x$FST)])
@@ -96,6 +103,8 @@ for (target in targets) {
   AB_FST <- FSTs[AB_index][[1]][!is.element(FSTs[AB_index][[1]]$ID, na),]
   AC_FST <- FSTs[AC_index][[1]][!is.element(FSTs[AC_index][[1]]$ID, na),]
   BC_FST <- FSTs[BC_index][[1]][!is.element(FSTs[BC_index][[1]]$ID, na),]
+
+  # Compute PBS for each SNP and store it in a list
   
   T_AB <- -log(1 - AB_FST$FST)
   T_AC <- -log(1 - AC_FST$FST)
@@ -155,15 +164,8 @@ for (target in targets) {
         )
       }
     )
-  )),]
-  
-  # sof <- trio_df[
-  #   trio_df$CHR == 7 &
-  #     trio_df$bp_cumul > 1310000000 &
-  #     trio_df$bp_cumul < 1320000000 &
-  #     trio_df$PBS > quantile(trio_df$PBS, 0.995)
-  # , ]
-  
+  )), ]
+    
   manplot <- ggplot(trio_df, aes(x = bp_cumul, y = PBS)) +
     geom_point(alpha = 0.75, aes(colour = ifelse(CHR %% 2 == 0, "even", "odd"))) +
     geom_point(
@@ -181,8 +183,6 @@ for (target in targets) {
         color = "quantile"
       )
     ) +
-    # geom_vline(linetype="dashed", xintercept = 1312567881, color = "yellow") +
-    # geom_vline(linetype="dashed", xintercept = 1312733432, color = "green") +
     scale_x_continuous(label = trio_axis_set$CHR, breaks = trio_axis_set$center) +
     scale_y_continuous(limits = c(min(trio_df$PBS), max(trio_df$PBS))) +
     scale_color_manual(
@@ -231,7 +231,7 @@ for (target in targets) {
       title = paste(target, "PBS for each SNP, with", reference,
                     "as reference and", outgroup, "as outgroup."),
       x = "Position on genome"
-    ) #+
+    )# +
     # geom_rect(
     #   # data=matrix_amy1,
     #   # inherit.aes=FALSE,
@@ -239,17 +239,19 @@ for (target in targets) {
     #   color="transparent",
     #   fill="green",
     #   alpha=0.3
+    # )# +
+    # coord_cartesian(xlim = c(1310000000, 1320000000))
+    # geom_text(aes(label = ifelse(
+    #       POS %in% sof$POS & CHR == 7,
+    #       dbSNP$GENE[dbSNP$CHR == 7 & dbSNP$POS %in% sof$POS],
+    #       ''
+    #     )),
+    #   hjust = 0, vjust = 0
     # )
-  
-  # coord_cartesian(xlim = c(1310000000, 1320000000))
-  # geom_text(aes(label = ifelse(
-  #       POS %in% sof$POS & CHR == 7,
-  #       dbSNP$GENE[dbSNP$CHR == 7 & dbSNP$POS %in% sof$POS],
-  #       ''
-  #     )),
-  #   hjust = 0, vjust = 0
-  # )
-  
+
+    # Commented parts after "labs" instruction are for higlighting the CD36 gene
+    # region and zoom on it, respectively
+
   plot_name <- paste0(
     "results/tmp/PBS_",
     paste(target, reference, outgroup, sep = "_"),
