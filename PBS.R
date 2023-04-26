@@ -55,7 +55,7 @@ SNPs_of_interest <- read.delim(
 # population in their name + use files names to get targets populations names
 
 reference <- "Yoruba"
-outgroup <- "Japanese"
+outgroup <- "Europe"
 
 FSTs <- list()
 targets <- list()
@@ -78,6 +78,8 @@ for (file in fst_files) {
 targets <- unique(targets)
 targets <- targets[targets != reference]
 targets <- targets[targets != outgroup]
+
+targets <- "Baka"
 
 BC_index <- grepl(reference, names(FSTs)) & grepl(outgroup, names(FSTs))
 
@@ -231,26 +233,40 @@ for (target in targets) {
       title = paste(target, "PBS for each SNP, with", reference,
                     "as reference and", outgroup, "as outgroup."),
       x = "Position on genome"
-    )# +
-    # geom_rect(
-    #   # data=matrix_amy1,
-    #   # inherit.aes=FALSE,
-    #   aes(xmin=79998891+1232462990, xmax=80308593+1232462990, ymin=-Inf, ymax=+Inf),
-    #   color="transparent",
-    #   fill="green",
-    #   alpha=0.3
-    # )# +
-    # coord_cartesian(xlim = c(1310000000, 1320000000))
-    # geom_text(aes(label = ifelse(
-    #       POS %in% sof$POS & CHR == 7,
-    #       dbSNP$GENE[dbSNP$CHR == 7 & dbSNP$POS %in% sof$POS],
-    #       ''
-    #     )),
-    #   hjust = 0, vjust = 0
-    # )
+    ) +
+    annotate(
+      "rect",
+      xmin=31699382+492250183,
+      xmax=32119072+492250183,
+      ymin=-Inf,
+      ymax=+Inf,
+      # color="transparent",
+      fill="green",
+      alpha=0.2
+    ) +
+    annotate(
+      "rect",
+      xmin=50712358+492250183,
+      xmax=51421629+492250183,
+      ymin=-Inf,
+      ymax=+Inf,
+      # color="transparent",
+      fill="green",
+      alpha=0.2
+    ) +
+    coord_cartesian(xlim = c(492350902, 592350902)) +
+    geom_text(
+      # data = trio_df[trio_df$ID %in% tmp_SNPs_of_interest$ID,],
+      aes(label = ifelse(
+        PBS > quantile(trio_df$PBS, 0.995) & PBS > 0.75,
+        ID,
+        ''
+      )),
+      hjust = 0, vjust = 0
+    )
 
-    # Commented parts after "labs" instruction are for higlighting the CD36 gene
-    # region and zoom on it, respectively
+    # Parts after "labs" instruction are highlighting a gene region, zooming on
+    # it and adding text, respectively. They are optional and can be commented
 
   plot_name <- paste0(
     "results/tmp/PBS_",
@@ -259,3 +275,4 @@ for (target in targets) {
   )
   ggsave(plot_name, width = 14, height = 8, bg = "white")
 }
+

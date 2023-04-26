@@ -4,11 +4,15 @@ library(htmlwidgets)
 library(leaflet.minicharts)
 library(htmltools)
 
-coordinates <- read.csv("Africaneo_dataset_simplified_c.csv")
-SNPs <- read.table("SNPs_of_interest_analysis_clst.frq.strat", header = T,
-                   sep = "\t", colClasses = c(rep("character", 4), rep("numeric", 3)))
+coordinates <- read.csv("Africaneo_dataset/Africaneo_dataset_simplified_c.csv")
+SNPs <- read.table(
+  "Africaneo_dataset/SNPs_of_interest/SNPs_of_interest_analysis_clst.frq.strat",
+  header = T,
+  sep = "\t",
+  colClasses = c(rep("character", 4), rep("numeric", 3))
+)
 
-SNP_of_interest <- "7_141687327"
+SNP_of_interest <- "7_141761438"
 
 SNP <- subset(SNPs, CODE == SNP_of_interest)
 colnames(SNP)[colnames(SNP) == "MAC"] = "MA1"
@@ -20,9 +24,12 @@ SNP_coordinates <- merge(
   by.y = "Population_label"
 )
 
-dbSNP <- read.csv("dbSNP_retrieved.csv", header = F,
-                  col.names = c("GENE", "RSID", "CHR", "POS", "ALLELES"),
-                  colClasses = rep("character", 5))
+dbSNP <- read.csv(
+  "Africaneo_dataset/SNPs_of_interest/dbSNP_retrieved.csv",
+  header = F,
+  col.names = c("GENE", "RSID", "CHR", "POS", "ALLELES"),
+  colClasses = rep("character", 5)
+)
 CHR_of_interest <- strsplit(SNP_of_interest, "_")[[1]][1]
 POS_of_interest <- strsplit(SNP_of_interest, "_")[[1]][2]
 GENE_of_interest <- dbSNP$GENE[dbSNP$CHR == CHR_of_interest & dbSNP$POS == POS_of_interest]
@@ -99,4 +106,4 @@ map <- leaflet() %>%
   addControl(title, position = "topleft", className="map-title")
 map
 
-saveWidget(map, file="map.html")
+saveWidget(map, file=paste("results/", SNP_of_interest, ".html"))
