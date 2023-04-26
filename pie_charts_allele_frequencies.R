@@ -106,4 +106,4 @@ map <- leaflet() %>%
   addControl(title, position = "topleft", className="map-title")
 map
 
-saveWidget(map, file=paste("results/", SNP_of_interest, ".html"))
+saveWidget(map, file=paste0("results/", SNP_of_interest, ".html"))
