@@ -73,7 +73,6 @@ pops <- unique(pops)
 
 # Loop over populations names to compute D statistic and genereate plot for each
 
-pops <- c("Baka")
 for (pop in pops) {
   pop_indexes <- grepl(pop, names(FSTs))
 
@@ -209,37 +208,37 @@ for (pop in pops) {
     labs(
       title = paste(pop, "D statistic for each SNP"),
       x = "Position on genome"
-    ) +
-    annotate(
-      "rect",
-      xmin=31699382+492250183,
-      xmax=32119072+492250183,
-      ymin=-Inf,
-      ymax=+Inf,
-      # color="transparent",
-      fill="green",
-      alpha=0.2
-    ) +
-    annotate(
-      "rect",
-      xmin=50712358+492250183,
-      xmax=51421629+492250183,
-      ymin=-Inf,
-      ymax=+Inf,
-      # color="transparent",
-      fill="green",
-      alpha=0.2
-    ) +
-    coord_cartesian(xlim = c(492350902, 592350902)) +
-    geom_text(
-      # data = trio_df[trio_df$ID %in% tmp_SNPs_of_interest$ID,],
-      aes(label = ifelse(
-        D > quantile(D, 0.995) & D > 60,
-        ID,
-        ''
-      )),
-      hjust = 0, vjust = 0
-    )
+    )# +
+    # annotate(
+    #   "rect",
+    #   xmin=31699382+492250183,
+    #   xmax=32119072+492250183,
+    #   ymin=-Inf,
+    #   ymax=+Inf,
+    #   # color="transparent",
+    #   fill="green",
+    #   alpha=0.2
+    # ) +
+    # annotate(
+    #   "rect",
+    #   xmin=50712358+492250183,
+    #   xmax=51421629+492250183,
+    #   ymin=-Inf,
+    #   ymax=+Inf,
+    #   # color="transparent",
+    #   fill="green",
+    #   alpha=0.2
+    # ) +
+    # coord_cartesian(xlim = c(492350902, 592350902)) +
+    # geom_text(
+    #   # data = trio_df[trio_df$ID %in% tmp_SNPs_of_interest$ID,],
+    #   aes(label = ifelse(
+    #     D > quantile(D, 0.995) & D > 60,
+    #     ID,
+    #     ''
+    #   )),
+    #   hjust = 0, vjust = 0
+    # )
 
     # Commented parts after "labs" instruction are for higlighting the CD36 gene
     # region and zoom on it, respectively
