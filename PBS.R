@@ -37,10 +37,16 @@ window_size <- 50000
 
 # Load genomic position of SNPs of interest
 
+# SNPs_of_interest <- read.delim(
+#   "Africaneo_dataset/SNPs_of_interest/SNPs_of_interest.map",
+#   header = FALSE,
+#   col.names = c("CHR", "ID", "#", "POS")
+# )
+
 SNPs_of_interest <- read.delim(
-  "Africaneo_dataset/SNPs_of_interest/SNPs_of_interest.map",
+  "dataset2/SNPs_of_interest.bim",
   header = FALSE,
-  col.names = c("CHR", "ID", "#", "POS")
+  col.names = c("CHR", "ID", "#", "POS", "A", "B")
 )
 
 # Load file containing names of genes associated with SNP if needed
@@ -54,24 +60,28 @@ SNPs_of_interest <- read.delim(
 # Load .fst.var files in dir_path that contain either the reference or outgroup
 # population in their name + use files names to get targets populations names
 
-reference <- "Namibia_HG"
-outgroup <- "ChineseDai"
+# reference <- "Yoruba"
+# outgroup <- "Europe"
+reference <- "Gambian_Mandinka"
+outgroup <- "Namibia_TsumkweKung"
 
 FSTs <- list()
 targets <- list()
-dir_path <- "Africaneo_dataset/pops_of_interest"
+# dir_path <- "Africaneo_dataset/pops_of_interest"
+dir_path <- "dataset2/Pops/FST"
 fst_files <- list.files(path = dir_path, pattern = "*.fst.var")
 for (file in fst_files) {
   pops <- strsplit(file, ".", fixed = TRUE)[[1]][2:3]
   if (reference %in% pops || outgroup %in% pops) {
     targets <- append(targets, pops)
-    path <- paste0("Africaneo_dataset/pops_of_interest/", file)
+    path <- paste(dir_path, file, sep="/")
     FSTs[[file]] <- read.delim(
       path,
       col.names = c("CHROM", "POS", "ID", "NOBS", "FST")
     )
     
     FSTs[[file]]$FST[FSTs[[file]]$FST < 0] <- 0
+    FSTs[[file]]$FST[FSTs[[file]]$FST == 1] <- 0.99
   }
 }
 
@@ -83,12 +93,16 @@ BC_index <- grepl(reference, names(FSTs)) & grepl(outgroup, names(FSTs))
 
 # Loop over targets to compute PBS and generate a plot for each
 
+tmp <- targets
+targets <- c("Namibia")
 for (target in targets) {
   # Here, target, reference and outgroup population will be designed with
   # letters A, B and C, respectively.
   
-  AB_index <- grepl(target, names(FSTs)) & grepl(reference, names(FSTs))
-  AC_index <- grepl(target, names(FSTs)) & grepl(outgroup, names(FSTs))
+  AB_index <- grepl(paste0('\\.', target, '\\.'), names(FSTs)) &
+              grepl(reference, names(FSTs))
+  AC_index <- grepl(paste0('\\.', target, '\\.'), names(FSTs)) &
+              grepl(outgroup, names(FSTs))
 
   # Remove NA values
 
@@ -110,25 +124,13 @@ for (target in targets) {
   T_AC <- -log(1 - AC_FST$FST)
   T_BC <- -log(1 - BC_FST$FST)
 
-  PBS <- (T_AB + T_AC + T_BC) / 2
+  PBS <- (T_AB + T_AC - T_BC) / 2
   
   trio_df <- data.frame(
     CHR = AB_FST$CHROM,
     POS = AB_FST$POS,
     ID = AB_FST$ID,
     PBS = PBS
-  )
-  
-  res_file_name <- paste0(
-    "results/tmp/PBS_",
-    paste(target, reference, outgroup, sep = "_"),
-    ".tsv"
-  )
-  write.table(trio_df,
-    file = res_file_name,
-    quote = FALSE,
-    sep = "\t",
-    row.names = FALSE
   )
   
   # Following code for plot was inspired by the code from:
@@ -147,7 +149,7 @@ for (target in targets) {
   trio_axis_set <- trio_df %>%
     group_by(CHR) %>%
     summarize(center = mean(bp_cumul))
-  
+
   trio_genes_of_interest_window <- trio_df[as.logical(rowSums(
     sapply(
       seq_len(ncol(genes_of_interest)),
@@ -165,7 +167,24 @@ for (target in targets) {
       }
     )
   )), ]
-    
+
+  res_file_name <- paste0(
+    "results/tmp/PBS_",
+    paste(target, reference, outgroup, sep = "_"),
+    ".tsv"
+  )
+  res_SOI <- trio_df[
+    trio_df$ID %in% tmp_SNPs_of_interest$ID &
+      trio_df$PBS > quantile(trio_df$PBS, 0.995),
+    c("CHR", "POS", "PBS")
+  ]
+  write.table(res_SOI,
+              file = res_file_name,
+              quote = FALSE,
+              sep = "\t",
+              row.names = FALSE
+  )
+
   manplot <- ggplot(trio_df, aes(x = bp_cumul, y = PBS)) +
     geom_point(alpha = 0.75, aes(colour = ifelse(CHR %% 2 == 0, "even", "odd"))) +
     geom_point(
@@ -184,7 +203,7 @@ for (target in targets) {
       )
     ) +
     scale_x_continuous(label = trio_axis_set$CHR, breaks = trio_axis_set$center) +
-    scale_y_continuous(limits = c(min(trio_df$PBS), max(trio_df$PBS))) +
+    scale_y_continuous(limits = c(-0.5, 2.5)) +
     scale_color_manual(
       breaks = c(
         "even",
@@ -211,6 +230,15 @@ for (target in targets) {
         linetype = c(rep("blank", 4), "dashed"),
         shape = c(rep(19, 4), NA)
       ))
+    ) +
+    geom_text(
+      data = trio_df[trio_df$ID %in% tmp_SNPs_of_interest$ID,],
+      aes(label = ifelse(
+        PBS > quantile(trio_df$PBS, 0.995),
+        ID,
+        ''
+      )),
+      hjust = 0, vjust = 0
     ) +
     theme(
       plot.title = element_text(size = 16, face = "bold", hjust = 0.5),

@@ -12,7 +12,7 @@ SNPs <- read.table(
   colClasses = c(rep("character", 4), rep("numeric", 3))
 )
 
-SNP_of_interest <- "7_141761438"
+SNP_of_interest <- "3_164704918"
 
 SNP <- subset(SNPs, CODE == SNP_of_interest)
 colnames(SNP)[colnames(SNP) == "MAC"] = "MA1"

@@ -37,35 +37,36 @@ window_size <- 50000
 
 # Load genomic position of SNPs of interest
 
+# SNPs_of_interest <- read.delim(
+#   "Africaneo_dataset/SNPs_of_interest/SNPs_of_interest.map",
+#   header = FALSE,
+#   col.names = c("CHR", "ID", "#", "POS")
+# )
+
 SNPs_of_interest <- read.delim(
-  "Africaneo_dataset/SNPs_of_interest/SNPs_of_interest.map",
+  "dataset2/SNPs_of_interest.bim",
   header = FALSE,
-  col.names = c("CHR", "ID", "#", "POS")
+  col.names = c("CHR", "ID", "#", "POS", "A", "B")
 )
 
 # Load file containing names of genes associated with SNP if needed
-
-# dbSNP <- read.delim("Africaneo_dataset/h3achip-annotated-with-gene.bed",
-#   header = F,
-#   col.names = c("CHR", "N", "POS", "GENE")
-#   # colClasses = rep("character", 5)
-# )
 
 # Load every .fst.var file in dir_path + use files names to get
 # populations names
 
 FSTs <- list()
 pops <- list()
-dir_path <- "Africaneo_dataset/pops_of_interest"
+# dir_path <- "Africaneo_dataset/pops_of_interest"
+dir_path <- "dataset2/Pops/FST"
 fst_files <- list.files(path = dir_path, pattern = "*.fst.var")
 for (file in fst_files) {
   pops <- append(pops, strsplit(file, ".", fixed = TRUE)[[1]][2:3])
-  path <- paste0("Africaneo_dataset/pops_of_interest/", file)
+  path <- paste(dir_path, file, sep="/")
   FSTs[[file]] <- read.delim(
     path,
     col.names = c("CHROM", "POS", "ID", "NOBS", "FST")
   )
-  
+
   FSTs[[file]]$FST[FSTs[[file]]$FST < 0] <- 0
 }
 
@@ -73,8 +74,21 @@ pops <- unique(pops)
 
 # Loop over populations names to compute D statistic and genereate plot for each
 
+# pops <- c("Senegal")
+comp <- c(
+  "Namibia_TsumkweKung",
+  "SouthAfrica_Khomani",
+  "DRC",
+  "East_Africa",
+  "SA",
+  "Senegal"
+)
+
 for (pop in pops) {
-  pop_indexes <- grepl(pop, names(FSTs))
+  pop_indexes <- grepl(
+    paste0('\\.', pop, '\\.'), names(FSTs)) &
+    !grepl("\\.Namibia\\.|Sudan", names(FSTs)
+  )
 
   # Remove NA values
 
@@ -101,14 +115,7 @@ for (pop in pops) {
     D = pop_D
   )
   
-  res_file_name <- paste0("results/tmp/D_statistic_", pop, ".tsv")
-  write.table(pop_df,
-    file = res_file_name,
-    quote = FALSE,
-    sep = "\t",
-    row.names = FALSE
-  )
-  
+
   # Following code for plot was inspired by the code from:
   # https://danielroelfs.com/blog/how-i-create-manhattan-plots-using-ggplot/
 
@@ -144,6 +151,19 @@ for (pop in pops) {
     )
   )), ]
 
+  res_file_name <- paste0("results/tmp/D_statistic_", pop, ".tsv")
+  res_SOI <- pop_df[
+    pop_df$ID %in% tmp_SNPs_of_interest$ID &
+      pop_df$D > quantile(pop_df$D, 0.995),
+    c("CHR", "POS", "D")
+  ]
+  write.table(res_SOI,
+              file = res_file_name,
+              quote = FALSE,
+              sep = "\t",
+              row.names = FALSE
+  )
+
   manplot <- ggplot(pop_df, aes(x = bp_cumul, y = D)) +
     geom_point(alpha = 0.75, aes(colour = ifelse(CHR %% 2 == 0, "even", "odd"))) +
     geom_point(
@@ -162,7 +182,7 @@ for (pop in pops) {
       )
     ) +
     scale_x_continuous(label = pop_axis_set$CHR, breaks = pop_axis_set$center) +
-    scale_y_continuous(limits = c(min(pop_df$D), max(pop_df$D))) +
+    scale_y_continuous(limits = c(-10, 100)) +
     scale_color_manual(
       breaks = c(
         "even",
@@ -190,6 +210,15 @@ for (pop in pops) {
         shape = c(rep(19, 4), NA)
       ))
     ) +
+    geom_text(
+      data = pop_df[pop_df$ID %in% tmp_SNPs_of_interest$ID,],
+      aes(label = ifelse(
+        D > quantile(pop_df$D, 0.995),
+        ID,
+        ''
+      )),
+      hjust = 0, vjust = 0
+    ) +
     theme(
       plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
       legend.position = "right",
@@ -208,17 +237,17 @@ for (pop in pops) {
     labs(
       title = paste(pop, "D statistic for each SNP"),
       x = "Position on genome"
+    ) +
+    annotate(
+      "rect",
+      xmin=32627244+1061782806,
+      xmax=32636160+1061782806,
+      ymin=-Inf,
+      ymax=+Inf,
+      color="transparent",
+      fill="green",
+      alpha=0.2
     )# +
-    # annotate(
-    #   "rect",
-    #   xmin=31699382+492250183,
-    #   xmax=32119072+492250183,
-    #   ymin=-Inf,
-    #   ymax=+Inf,
-    #   # color="transparent",
-    #   fill="green",
-    #   alpha=0.2
-    # ) +
     # annotate(
     #   "rect",
     #   xmin=50712358+492250183,
@@ -229,7 +258,7 @@ for (pop in pops) {
     #   fill="green",
     #   alpha=0.2
     # ) +
-    # coord_cartesian(xlim = c(492350902, 592350902)) +
+    # coord_cartesian(xlim = c(1093419927, 1095419927))# +
     # geom_text(
     #   # data = trio_df[trio_df$ID %in% tmp_SNPs_of_interest$ID,],
     #   aes(label = ifelse(
